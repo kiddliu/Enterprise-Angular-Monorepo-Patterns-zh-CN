@@ -30,11 +30,11 @@ function() {
 
 > 注解采用这样的格式，描述那些可以丰富当前论题的信息
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1") 信息符号突出标示了应当注意的相关信息
+![信息符号](info.png "信息符号") 信息符号突出标示了应当注意的相关信息
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1") 注意符号标示了常见的陷阱
+![注意符号](gotcha.png "注意符号") 注意符号标示了常见的陷阱
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1") 警告符号标示了可能会产生重大影响的关键信息
+![警告符号](exclamation.png "警告符号") 警告符号标示了可能会产生重大影响的关键信息
 
 ## 示例参考应用
 
@@ -48,6 +48,6 @@ function() {
 
 代码的依赖图是这个样子的：
 
-![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png "Logo Title Text 1")
+![示例代码仓库的结构与依赖关系](repo.png "示例代码仓库的结构与依赖关系")
 
 *图-1 示例代码仓库的结构与依赖关系*
