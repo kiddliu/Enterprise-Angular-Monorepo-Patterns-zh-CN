@@ -65,3 +65,124 @@
 &emsp;&emsp;我们更建议代码按照领域组织，把所有相关的文件，比如`airline`包含的状态、ui组件等等都放在一个文件夹内。这使得开发者可以直接工作在相关的文件上而无需频繁地遍历文件夹树。
 
 <hr>
+
+## 库的类型
+
+&emsp;&emsp;可以在工作区中使用的库有很多种。为了维持一定意义上的秩序，我们推荐只使用4类库：
+
+* 功能库：开发者把程序库看作是应用程序中为特定业务场景（用注入服务）实现的智能UI或是页面。
+* UI库：UI库只包含`representational`组件。
+* 数据访问库：数据访问库包含了与后端系统交互的服务与工具。也包括所有与状态管理相关的代码。
+* 工具库：工具库包含了为许多库与应用使用的通用工具与服务。
+
+&emsp;&emsp;在了解所有的库类型之前，让我们迅速的介绍一些受Flux影响的组件类型基础知识，从而方便理解智能型与展示型组件。
+
+### 旁白：智能型与展示型组件
+
+&emsp;&emsp;通过单项数据流构建应用的时候，有两类组件：一种是通过接收发送数据与应用的其他部分通信的组件（称为“智能型”组件），另一种只接收数据（成为“展示型”或是“惰性”组件）。
+
+#### 智能型组件
+
+&emsp;&emsp;这类组件管理或委托业务逻辑，且使用依赖注入系统注入服务。它们可以通过分发各种动作把更新发送到应用的其他部分。它们把展示型组件作为子实例：智能型组件通过管道把数据发送到子展示型组件，而后应用程序响应子组件发出的必要的事件。
+
+#### 展示型组件
+
+&emsp;&emsp;这类组件几乎没有任何业务逻辑。它们**只**通过*输入*与*输出*与外界通信。它们唯一的目的是渲染数据并接收用户输入——但是并不处理输入。它们会通过*输出*发送事件到知道如何处理它们的父组件。
+
+&emsp;&emsp;它们的复用度高，易于测试，可以做到完全通用/领域无关（好比数据—表）或是有一个领域上下文（比如记录-预定-表）。
+
+&emsp;&emsp;至此我们了解了关于智能型与展示型组件的术语，接下来让我们了解以下包含它们的库的类型。功能库包含智能型组件，而UI库包含展示型组件。
+
+### 功能库
+
+#### 这是啥?
+
+&emsp;&emsp;功能库包含了一组配置应用程序业务场景或是页面的文件。这类库都包含了一个描述部分应用程序行为的ngModule（也可能包含了一部分NgRx状态，处理了应用特定部分内部的路由，并且可以被应用懒加载）。
+
+&emsp;&emsp;库的绝大部分组件都是可以与NgRx状态交互的智能型组件。这一类型的库也可以包含绝大部分的UI逻辑、表单验证代码等等。功能库几乎都是针对特定应用的，常常是懒加载的。
+
+#### 命名规则
+
+&emsp;&emsp;`feature`（如果嵌套的话）或者是`feature-*`（比如`feature-shell`）。
+
+    libs/
+        booking/
+            feature-shell/ ①
+                src/
+                    index.ts
+                    lib/
+                        booking-feature-shell.module.ts
+
+① `feature-shell`是针对特定应用的功能库（在这个例子中，就是"booking"应用）。
+
+> 在我们的示例应用中, nrwl航空想要开始开发订票应用的UI。我们打算为用户提供三个不同界面：搜索航班，乘客信息，以及座位图。
+
+&emsp;&emsp;让我们首先看看，把这些界面的路由直接放在`booking/desktop`应用中。
+
+```typescript
+export routes = [
+  {
+  path: '',
+  pathMatch: 'full',
+  component: 'FlightSearchComponent'
+  },
+  {
+  path: '/passenger',
+  pathMatch: 'full',
+  loadChildren: '@nrwl-airlines/booking/feature-passengerinfo#BookingFeaturePassengerInfoModule'
+  },
+  {
+  path: '/seatmap',
+  pathMatch: 'full',
+  loadChildren: '@nrwl-airlines/shared/seatmap/feature-seatlisting#SharedSeatmapFeatureSeatListingModule'
+  }
+]
+```
+
+&emsp;&emsp;假如这个路由是放在`apps/booking/desktop`里边，我们就需要在`apps/booking/mobile`里边复制一份，之后保证二者之间一直同步。鉴于不做重复性工作，我们应该想要把这段路由提取到一个公共文件中去。
+
+&emsp;&emsp;我们可以把这段路由挪到一个库去。这个库会包含`booking`的路由结构并执行任何初始化代码。这个库的模块（module）也可以被懒加载到父级应用`booking/desktop`以及`booking/mobile`。
+
+&emsp;&emsp;合适的命名规则是`BookingFeatureShellModule`，存放在如上所示的`libs/booking/feature-shell`。现在我们有了4个功能库：`booking/feature-shell`、`booking/feature-flight-search`、`booking/feature-passenger-info`以及`shared/seatmap/feature-seat-listing`。他们每一个都对应应用程序中的一个界面。
+
+#### 一个示例功能库模块
+
+```typescript
+import { NgModule } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FlightSearchComponent } from './components/flight-search/flightsearch.component';
+
+@NgModule({
+  imports: [
+    CommonModule,
+    RouterModule.forChild([ ①
+      {
+        path: '',
+        component: FlightSearchComponent,
+        pathMatch: 'full'
+      },
+      {
+        path: '/passenger',
+        pathMatch: 'full',
+        loadChildren: '@nrwl-airlines/booking/feature-passengerinfo#BookingFeaturePassengerInfoModule'
+      },
+      {
+        path: '/seatmap',
+        pathMatch: 'full',
+        loadChildren: '@nrwl-airlines/shared/seatmap/feature-seatlisting#SharedSeatmapFeatureSeatListingModule'
+      }
+    ])
+  ],
+  declarations: [FlightSearchComponent]
+})
+export class BookingFeatureShellModule {} ②
+```
+
+① 请注意`.forChild`的使用。在功能库中我们从来不会使用`.forRoot`——它只可以在应用中使用。
+
+② 这个模块文件的路径是`libs/booking/feature-shell/src/booking-featureshell.module.ts`
+
+&emsp;&emsp;关于在生成功能库懒加载样板文件的时候可用的命令行选项，请查看之后的“命令行选项”一节。
+
+&emsp;&emsp;现在我们知道了在哪里放置智能型组件，接下来我们看看在哪里放置展示型组件。
