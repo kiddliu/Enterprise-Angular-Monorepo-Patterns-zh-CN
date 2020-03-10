@@ -95,7 +95,7 @@
 
 ### 功能库
 
-#### 这是啥?
+#### 定义
 
 &emsp;&emsp;功能库包含了一组配置应用程序业务场景或是页面的文件。这类库都包含了一个描述部分应用程序行为的ngModule（也可能包含了一部分NgRx状态，处理了应用特定部分内部的路由，并且可以被应用懒加载）。
 
@@ -145,7 +145,7 @@ export routes = [
 
 &emsp;&emsp;合适的命名规则是`BookingFeatureShellModule`，存放在如上所示的`libs/booking/feature-shell`。现在我们有了4个功能库：`booking/feature-shell`、`booking/feature-flight-search`、`booking/feature-passenger-info`以及`shared/seatmap/feature-seat-listing`。他们每一个都对应应用程序中的一个界面。
 
-#### 一个示例功能库模块
+#### 功能库模块范例
 
 ```typescript
 import { NgModule } from '@angular/core';
@@ -181,8 +181,125 @@ export class BookingFeatureShellModule {} ②
 
 ① 请注意`.forChild`的使用。在功能库中我们从来不会使用`.forRoot`——它只可以在应用中使用。
 
-② 这个模块文件的路径是`libs/booking/feature-shell/src/booking-featureshell.module.ts`
+② 这个模块文件的路径应该是`libs/booking/feature-shell/src/booking-featureshell.module.ts`
 
 &emsp;&emsp;关于在生成功能库懒加载样板文件的时候可用的命令行选项，请查看之后的“命令行选项”一节。
 
 &emsp;&emsp;现在我们知道了在哪里放置智能型组件，接下来我们看看在哪里放置展示型组件。
+
+### UI库
+
+#### 定义
+
+&emsp;&emsp;UI库是一组相互关联的展示型组件。通常是不会把服务注入到这类组件中去的（所有需要的数据都来自于*输入*）。
+
+&emsp;&emsp;至于UI库是否应该针对特定应用、是否可以共享，请查阅附录丙（“我应该在什么地方创建新的库？”一节）。
+
+#### 命名规则
+
+&emsp;&emsp;`ui`（如果嵌套的话）或者`ui-*`（比如`ui-buttons`）
+
+#### UI库模块范例
+
+```typescript
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ConfirmButtonComponent } from './confirm-button/confirmbutton.component';
+
+@NgModule({
+  imports: [CommonModule],
+  declarations: [ConfirmButtonComponent],
+  exports: [ConfirmButtonComponent]
+  })
+export class CommonUiButtonsModule {} ①
+```
+① 这个模块文件的路径应该是`libs/common/ui-buttons/src/common-ui-buttons.module.ts`。
+
+&emsp;&emsp;除了智能型与惰性组件，还有数据访问库与工具库。接下来我们来了解它们都包含些什么。
+
+### 数据访问库
+
+#### 定义
+
+&emsp;&emsp;数据访问库包含REST或是webSocket服务，作为客户端内的代理，提供服务层API。
+
+&emsp;&emsp;所有与状态管理相关的文件也都放在数据访问文件夹内（按照惯例，它们被分组放在`src/lib`中的`+state`文件夹内）。
+
+#### 命名规则
+
+&emsp;&emsp;`data-access`（如果嵌套的话）或者`data-access-*`（比如`data-access-seatmap`）
+
+#### 数据访问库模块范例
+
+```typescript
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { StoreModule } from '@ngrx/store';
+import { EffectsModule } from '@ngrx/effects';
+import { customersReducer } from './+state/state.reducer';
+import { customersInitialState } from './+state/state.init';
+import { CustomersEffects } from './+state/state.effects';
+@NgModule({
+  imports: [
+    CommonModule,
+    StoreModule.forFeature('customer', customersReducer, { ①
+      initialState: customersInitialState
+    }),
+    EffectsModule.forFeature([CustomersEffects]) ①
+  ],
+  providers: [CustomersEffects]
+})
+export class CustomersDataAccessModule {}
+```
+
+① 再次注意，在库里边我们指挥用到`.forFeature`。任何`.forRoot`调用都应该出现在应用中。
+
+&emsp;&emsp;复用数据访问库是很容易的，所以专注精神，创建更多的共享数据访问库吧。
+
+![信息符号](info.png "信息符号")&emsp;&emsp;如果库是共享的话，请为它编写文档！为了解更多，请查看“为库编写文档” 一节。
+
+### 工具库
+
+#### 定义
+
+&emsp;&emsp;工具库包含许多其他库使用的常见工具/服务模块。通常没有ngModule定义，整个库只是一组工具或是纯函数的集合。
+
+#### 命名规则
+
+&emsp;&emsp;`util`（如果嵌套的话）或者`util-*`（比如`util-testing`）
+
+#### 工具模块范例
+
+*libs/shared/util-formatting*
+
+```typescript
+export { formatDate, formatTime } from './src/format-date-fns';
+export { formatCurrency } from './src/format-currency';
+```
+
+至此我们讲完了各种类型的库，于是我们可以介绍两个重要的概念：使用嵌套目录结构把库分组，鼓励使用共享库进行代码复用。
+
+## 用来分组的文件夹
+
+#### 定义
+
+在我们用来参考的文件夹结构中，文件夹`libs/booking`、`libs/check-in`、`libs/shared`和`libs/shared/seatmap`是用来分组的。其中只包含库或是其他用来分组的文件夹。
+
+使用这些文件夹的意义在于帮助我们按范围管理包。我们估计把（通常）一起更新的包分在一组里。这样可以帮助减少开发者在海量文件夹内寻找正确文件的时间。
+
+    apps/
+        booking/
+        check-in/
+    libs/
+        booking/                <---- 用来分组的文件夹
+            feature-shell/      <---- 库
+            
+    check-in/
+        feature-shell/
+        
+    shared/                     <---- 用来分组的文件夹
+        data-access/            <---- 库
+        
+    seatmap/                    <---- 用来分组的文件夹
+        data-access/            <---- 库
+        feature-seatmap/        <---- 库
