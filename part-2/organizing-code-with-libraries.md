@@ -277,15 +277,15 @@ export { formatDate, formatTime } from './src/format-date-fns';
 export { formatCurrency } from './src/format-currency';
 ```
 
-至此我们讲完了各种类型的库，于是我们可以介绍两个重要的概念：使用嵌套目录结构把库分组，鼓励使用共享库进行代码复用。
+&emsp;&emsp;至此我们讲完了各种类型的库，于是我们可以介绍两个重要的概念：使用嵌套目录结构把库分组，鼓励使用共享库进行代码复用。
 
 ## 用来分组的文件夹
 
 #### 定义
 
-在我们用来参考的文件夹结构中，文件夹`libs/booking`、`libs/check-in`、`libs/shared`和`libs/shared/seatmap`是用来分组的。其中只包含库或是其他用来分组的文件夹。
+&emsp;&emsp;在我们用来参考的文件夹结构中，文件夹`libs/booking`、`libs/check-in`、`libs/shared`和`libs/shared/seatmap`是用来分组的。其中只包含库或是其他用来分组的文件夹。
 
-使用这些文件夹的意义在于帮助我们按范围管理包。我们估计把（通常）一起更新的包分在一组里。这样可以帮助减少开发者在海量文件夹内寻找正确文件的时间。
+&emsp;&emsp;使用这些文件夹的意义在于帮助我们按范围管理包。我们估计把（通常）一起更新的包分在一组里。这样可以帮助减少开发者在海量文件夹内寻找正确文件的时间。
 
     apps/
         booking/
@@ -303,3 +303,78 @@ export { formatCurrency } from './src/format-currency';
     seatmap/                    <---- 用来分组的文件夹
         data-access/            <---- 库
         feature-seatmap/        <---- 库
+
+## 共享库
+
+&emsp;&emsp;使用单仓库的一个主要优势是代码的可见性变强，可以在多个应用程序中复用。共享库是一种非常好的、通过服用代码解决问题的方式，节省了开发者大量的时间。
+
+&emsp;&emsp;让我们来考虑一下我们的示例单仓库。`shared-data-access`库包含与后端（比如URL前缀）通信所需的代码。我们知道，这对于所有的库都是一样的；因此我们应该把这个代码放在共享库中，为它编写文档，方便所有的项目都使用它，而不是去写自己的的版本。
+
+    libs/
+        booking/
+            data-access/            <---- 针对特定应用的库
+
+        shared/
+            data-access/            <---- 共享库
+
+            seatmap/
+                data-access/        <---- 共享库
+                feature-seatmap/    <---- 共享库
+
+&emsp;&emsp;有的时候判断一个库是不是应该共享不是那么容易。您可以参考附录丙里的决策树。
+
+&emsp;&emsp;我们现在准备好在工作区创建库了。让我们了解一些创建新库的时候需要考虑的重要问题。
+
+## 使用库的注意要点
+
+### 桶文件
+
+&emsp;&emsp;当我们使用Nx与@nrwl/schematics创建库的时候，实际上是分几步执行的。最重要的一步就是创建桶文件。
+
+&emsp;&emsp;以下就是在`shared`文件夹中创建了`data-access`库时生成的文件：
+
+    jest.config.js ①
+    src/
+        index.ts ②
+        lib/
+        shared-data-access.module.spec.ts
+        shared-data-access.module.ts
+        test-setup.ts
+    tsconfig.lib.json
+    tsconfig.spec.json
+    tslint.json
+
+① 这个库选用了`jest`作为测试框架。
+② 这就是桶文件。
+
+&emsp;&emsp;请注意，`index.ts`出现在`src/`文件夹。它就是这个库的桶文件。它包含了与这个库交互的公有API，所以我们应当保证任何希望暴露出来的常量、枚举、类、函数等等都出现在这个桶文件里。
+
+&emsp;&emsp;Nx把它配置在根文件夹内的tsconfig.json里，可能包含以下内容：
+
+*我们的库的路径别名配置*
+
+```json
+"paths": {
+    ...
+    "@nrwl-airlines/shared/data-access": [
+        "libs/shared/data-access/src/index.ts"
+    ]
+    ...
+}
+```
+
+&emsp;&emsp;上边的配置使得我们可以在工作区内的任何地方可以写`import * from '@nrwl-airlines/shared/data-access';`，告诉typescript可以从桶文件导入（我们应该从桶文件中导入指明的对象，而不是`*`）。
+
+&emsp;&emsp;我们使用命令行创建的每一个应用与库都在这个文件里有一条使用`@`工作区相对路径进行映射的记录。为了方便开发，你也可以用这种方式创建你自己的别名。
+
+&emsp;&emsp;让我们看看在工作区中什么时候应该用这样的别名，而什么时候不应该：
+
+### 使用相对路径还是工作区别名
+
+&emsp;&emsp;库**内部包含**的组件与类只应该使用相对路径导入。使用工作区相对路径引用会导致静态检查错误。
+
+&emsp;&emsp;从当前**库以外的地方导入**的组件与服务就必须使用npm命名空间（比如`@myOrg/customers/`）导入，而不应该使用相对路径。
+
+&emsp;&emsp;TSLint可以进行配置，对违反以上规则的代码显示错误提示。
+
+&emsp;&emsp;一旦库创建完成，我们需要做的一件很重要的事就是通知其他工程师这是库是做什么的，怎么用，使用它可能会有什么样的限制。
