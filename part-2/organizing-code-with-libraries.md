@@ -378,3 +378,66 @@ export { formatCurrency } from './src/format-currency';
 &emsp;&emsp;TSLint可以进行配置，对违反以上规则的代码显示错误提示。
 
 &emsp;&emsp;一旦库创建完成，我们需要做的一件很重要的事就是通知其他工程师这是库是做什么的，怎么用，使用它可能会有什么样的限制。
+
+## 为库编写文档
+
+&emsp;&emsp;README文件应该标识清楚库的用途，明确列出公有API。也可以包括
+
+* 代码所有人
+* 可视化的库的使用情况（依赖关系图）
+* 依赖限制（哪些应用或是库可以使用这个库）
+
+![示例依赖关系图](visual.png "示例依赖关系图")
+
+*图4 一个示例依赖关系图*
+
+&emsp;&emsp;也许你注意到了库模块名称都沿用了特定的规则。让我们看看这是为什么是这样的。
+
+## 模块名称
+
+&emsp;&emsp;库的主模块必须在文件名中包含（相对于`libs`）完整的路径。比如说，库`libs/booking/feature-destination`的主模块的文件名将会是`booking-feature-destination.module.ts`。
+
+&emsp;&emsp;这是CLI创建模块的方式，我们推荐您保留这种规则。
+
+&emsp;&emsp;接下来让我们看看创建库的时候Nx与CLI提供的一些选项。
+
+## 命令行选项
+
+&emsp;&emsp;当我们使用Nx原理图（schematics）创建库的时候，开发者拥有几个强力的选项。这些选项大多数与默认的CLI提供的一致，但是以下这几个是新的，或是不一样的。
+
+&emsp;&emsp;`--lazy`标记在创建懒加载库的时候特别重要。
+
+*使用`ng generate lib mylib`的可选项*
+
+| Flags         | Result        |
+|:------------- |:------------- |
+| `--directory=myteam` | 在路径`libs/myteam/mylib`创建新的库 |
+| `--routing` | 设置库的NgModule绑定路由，从而积极加载 |
+| `--parent-module=apps/myapp/src/app/app.module.ts` | 配置在给定位置的`AppModule`包含一个路由用以加载这个库。如果同时使用`--lazy`，这个路由将使用`loadChildren`进行懒加载 |
+| `--publishable` | 生成一些额外的文件用来配置ng-packagr。之后你可以使用`ng build mylib`创建npm包发布到npm源。在单仓库开发中，这样做是很少见的。因为库的使用者都在同一个代码仓库，所以打包与发布是不需要的 |
+| `--tags=scope:shared,type:feature` | 在`nx.json`文件创建条目，把两个标签绑定到创建好的库，这些标签将被用来做高级代码分析 |
+
+&emsp;&emsp;当创建懒加载库时，你需要向父模块应用的`tsconfig.app.json`添加条目，使得TypeScript知道也要构建它：
+
+```json
+{
+  "include": [
+    "**/*.ts"
+    /* add all lazy-loaded libraries here: "../../../libs/my-lib/index.ts" */
+    
+    , "../../../libs/mymodule/src/index.ts"
+  ]
+}
+```
+
+## 小结
+
+&emsp;&emsp;在这一部分我们深入了解了库
+
+* 库提供一种模块化代码的方式，它使得在工作区中的应用之间分享代码变得方便。
+* 库可以按范围、类型、平台或者其他标识符分类来管理它们。
+* 我们使用文件夹标识范围、用前缀表示类型。每个库都包含了所有的标识符，用来辅助限制它的使用范围。
+* 常年的Nx工作区包含四种库：功能库、UI库、数据访问库与工具库。
+* 用来分组的文件夹可以包含范围的层次结构（a hierarchy of scope）。
+* 库的桶文件定义了公有API，是库的最重要的方面。公有API必须条理清晰、定义明确，只包含其他库要用到的。
+* 还涵盖了一些创建库的命令行选项：`directory`、`routing`、`parentmodule`、`publishable`与`tags`。
